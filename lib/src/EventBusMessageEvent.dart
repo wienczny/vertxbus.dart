@@ -1,21 +1,17 @@
 part of vertx.eventbus;
 
 class EventBusMessageEvent {
-  EventBus _eventBus;
-  var _body;
-  String _replyAddress;
+  final EventBus eventBus;
+  final body;
+  final String replyAddress;
 
-  EventBus get eventBus => _eventBus;
-  String get replyAddress => _replyAddress;
-  get body => _body;
-
-  EventBusMessageEvent(this._eventBus, this._body, [this._replyAddress]);
+  EventBusMessageEvent(this.eventBus, this.body, [this.replyAddress]);
 
   bool canReply() => replyAddress != null && !replyAddress.isEmpty;
 
-  void reply(message, replyHandler) {
+  void reply(message, [void replyCallback(BusMessageEvent)]) {
     if (canReply()) {
-      eventBus.send(replyAddress, message);
+      eventBus.send(replyAddress, message, replyCallback);
     } else {
       //TODO: Throw error
     }

@@ -131,21 +131,21 @@ class EventBus {
   /**
    * Login to 'authmanager' using username and password.
    */
-  void loginUsernamePassword(String username, String password, [void replyHandler(BusMessageEvent)]) {
-    login({'username': username, 'password': password});
+  void loginUsernamePassword(String username, String password, [void replyCallback(BusMessageEvent)]) {
+    login({'username': username, 'password': password}, replyCallback);
   }
 
   /**
    * Login to 'authmanager' using credentials.
    */
-  void login(credentials, [void replyHandler(BusMessageEvent)]) {
+  void login(var credentials, [void replyCallback(BusMessageEvent)]) {
     send(authManagerAddress, credentials, (busMessageEvent) {
       var body = busMessageEvent.body;
-      if (body.status == 'ok') {
-        _sessionID = body.sessionID;
+      if (body['status'] == 'ok') {
+        _sessionID = body['sessionID'];
       }
-      if (replyHandler != null) {
-        replyHandler(busMessageEvent);
+      if (replyCallback != null) {
+        replyCallback(busMessageEvent);
       }
     });
   }
@@ -153,8 +153,8 @@ class EventBus {
   /**
    * Send a message using this bus.
    */
-  void send(address, message, [replyHandler]) {
-    _doSend("send", address, message, replyHandler);
+  void send(String address, var message, [void replyCallback(BusMessageEvent)]) {
+    _doSend("send", address, message, replyCallback);
   }
 
   /**
@@ -168,7 +168,7 @@ class EventBus {
   /**
    * Publish a message using this bus.
    */
-  void publish (address, message, [replyHandler]) {
+  void publish (String address, var message, [replyHandler]) {
     _doSend("publish", address, message, replyHandler);
   }
 
