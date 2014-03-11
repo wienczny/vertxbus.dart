@@ -9,7 +9,7 @@ class EventBusMessageEvent {
 
   bool canReply() => replyAddress != null && !replyAddress.isEmpty;
 
-  void reply(message, [void replyCallback(BusMessageEvent)]) {
+  void reply(message, [void replyCallback(EventBusMessageEvent)]) {
     if (canReply()) {
       eventBus.send(replyAddress, message, replyCallback);
     } else {

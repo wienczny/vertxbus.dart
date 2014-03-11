@@ -1,51 +1,57 @@
+library vertx.eventbus.tests;
+
 import 'dart:async';
 import 'dart:convert';
 
 import 'package:unittest/unittest.dart';
+import 'package:logging/logging.dart';
+import 'package:logging_handlers/logging_handlers_shared.dart';
+import 'package:unittest/html_enhanced_config.dart';
 import 'package:sockjs_client/sockjs.dart' as sockjs;
 
 import '../lib/vertxbus.dart';
 
-class MockClient {
-  StreamController _onOpenController = new StreamController.broadcast();
-  Stream get onOpen => _onOpenController.stream;
-
-  StreamController _onMessageController = new StreamController.broadcast();
-  Stream get onMessage => _onMessageController.stream;
-
-  StreamController _onCloseController = new StreamController.broadcast();
-  Stream get onClose => _onCloseController.stream;
-
-  var lastSend;
-
-  send(data) {
-    lastSend = data;
-    return true;
-  }
-
-  fakeData({ body: 'body',  replyAddress: 'replyAddr', address: 'address'}) {
-    var data = { 'body': body,  'replyAddress': replyAddress, 'address': address};
-    sockjs.MessageEvent evt = new sockjs.MessageEvent(JSON.encode(data));
-    _onMessageController.add(evt);
-  }
-}
+part 'mocks/mockclient.dart';
 
 void main() {
+  Logger.root.onRecord.listen(new LogPrintHandler());
+  useHtmlEnhancedConfiguration();
 
-  test("eventbus generation and events", () {
-    MockClient client = new MockClient();
+  MockClient client;
+  EventBus bus;
+
+  group('EventBus', (){
+    setUp(() {
+      client = new MockClient();
+      bus = new EventBus("", socket:  client);    
+    });
     
-    EventBus bus = new EventBus("", socket:  client);
+    test("listen", () {
+      bus.onMessage.listen(expectAsync1((event) => expect( event.body, equals('body'))));
+      client.fakeData();
+    });
     
-    bus.onMessage.listen(expectAsync1((event) => expect( event.body, equals('body'))));
+    test("send callback" , () {
+      bus.send('address', {'data': 'data'}, expectAsync1((event) => expect( event.body, equals('body2') )));
+  
+      expect(client.lastSend, isNotNull);
+  
+      var lastMessage = JSON.decode(client.lastSend);
+  
+      client.fakeData(body: 'body2', address: lastMessage['replyAddress']);
+    });
+    
+    test("send callback after listen", () {
+      bus.onMessage.listen(expectAsync1((event) => expect( event.body, equals('body'))));
+      client.fakeData();
 
-    client.fakeData();
-    bus.send('address', {'data': 'data'}, expectAsync1((event) => expect( event.body, equals('body2') )));
-
-    expect(client.lastSend, isNotNull);
-
-    var lastMessage = JSON.decode(client.lastSend);
-
-    client.fakeData(body: 'body2', address: lastMessage['replyAddress']);
+      bus.send('address', {'data': 'data'}, expectAsync1((event) => expect( event.body, equals('body2') )));
+      
+      expect(client.lastSend, isNotNull);
+  
+      var lastMessage = JSON.decode(client.lastSend);
+  
+      client.fakeData(body: 'body2', address: lastMessage['replyAddress']);      
+    });
   });
 }

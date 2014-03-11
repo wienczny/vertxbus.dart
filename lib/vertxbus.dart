@@ -16,5 +16,5 @@ const OPEN = 1;
 const CLOSING = 2;
 const CLOSED = 3;
 
-var uuid = new Uuid();
+var uuid = new UuidBase();
 

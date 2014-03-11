@@ -17,6 +17,11 @@ class EventBus {
   Map _replyCallbacks = new Map<String, Function>();
 
   /**
+   * Map of uuid to callback.
+   */
+  Map _registeredHandlers = new Map<String, Set<Function>>();
+  
+  /**
    * Sockjs client.
    */
   var _socket;
@@ -38,7 +43,12 @@ class EventBus {
    * SessionID assigned by login.
    */
   String _sessionID;
-
+  get sessionID => _sessionID;
+  set sessionID(String newValue) {
+    _sessionID = newValue;
+    _onSessionIdChanged.add(newValue);
+  }
+  
   /**
    * Address of AuthManager on Bus
    */
@@ -62,6 +72,13 @@ class EventBus {
   StreamController<sockjsevent.Event> _onCloseController = new StreamController<sockjsevent.Event>.broadcast();
   Stream<sockjsevent.Event> get onClose => _onCloseController.stream;
 
+  /**
+   * Stream value changed.
+   */
+  StreamController<String> _onSessionIdChanged = new StreamController<String>.broadcast();
+  Stream<String> get onSessionIdChanged => _onSessionIdChanged.stream;
+
+  
   /**
    * Time to send heartbeat messages to the server.
    */
@@ -112,6 +129,13 @@ class EventBus {
       replyCallback(downstreamEvent);
       return;
     }
+    if (_registeredHandlers.containsKey(address)) {
+      // There is a handler for this address
+      for(var h in _registeredHandlers[address]) {
+        h(downstreamEvent);
+      }
+      return;
+    }
 
     _onMessageController.add(downstreamEvent);
   }
@@ -131,18 +155,18 @@ class EventBus {
   /**
    * Login to 'authmanager' using username and password.
    */
-  void loginUsernamePassword(String username, String password, [void replyCallback(BusMessageEvent)]) {
+  void loginUsernamePassword(String username, String password, [void replyCallback(EventBusMessageEvent)]) {
     login({'username': username, 'password': password}, replyCallback);
   }
 
   /**
    * Login to 'authmanager' using credentials.
    */
-  void login(var credentials, [void replyCallback(BusMessageEvent)]) {
+  void login(var credentials, [void replyCallback(EventBusMessageEvent)]) {
     send(authManagerAddress, credentials, (busMessageEvent) {
       var body = busMessageEvent.body;
       if (body['status'] == 'ok') {
-        _sessionID = body['sessionID'];
+        sessionID = body['sessionID'];
       }
       if (replyCallback != null) {
         replyCallback(busMessageEvent);
@@ -151,9 +175,36 @@ class EventBus {
   }
 
   /**
+   * Register a handler on the bus.
+   */
+  void registerHandler(String address, [void replyCallback(EventBusMessageEvent)]) {
+    if (!_registeredHandlers.containsKey(address)) {
+      _registeredHandlers[address] = new Set<Function>();
+      _doSend("register", address, null, replyCallback);
+    }
+    _registeredHandlers[address].add(replyCallback);
+  }
+
+  /**
+   * Unregister a handler from the bus.
+   */
+  void unregisterHandler(String address, [void replyCallback(EventBusMessageEvent)]) {
+    if (!_registeredHandlers.containsKey(address)) {
+      return;
+    }
+    
+    _registeredHandlers[address].remove(replyCallback);
+    
+    if (_registeredHandlers[address].length <= 0) {
+      _doSend("unregister", address, null, replyCallback);
+      _registeredHandlers.remove(address);
+    }
+  }
+  
+  /**
    * Send a message using this bus.
    */
-  void send(String address, var message, [void replyCallback(BusMessageEvent)]) {
+  void send(String address, var message, [void replyCallback(EventBusMessageEvent)]) {
     _doSend("send", address, message, replyCallback);
   }
 

@@ -10,4 +10,6 @@ dependencies:
       git: git://github.com/nelsonsilva/sockjs-dart-client.git
 dev_dependencies:
   unittest: any
+  logging_handlers: any
+  dartmocks: any
 
