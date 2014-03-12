@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 which content_shell
 if [[ $? -ne 0 ]]; then
