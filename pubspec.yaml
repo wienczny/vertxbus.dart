@@ -12,4 +12,4 @@ dev_dependencies:
   unittest: any
   logging_handlers: any
   dartmocks: any
-
+  hop: any

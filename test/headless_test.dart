@@ -27,12 +27,12 @@ void main() {
     });
     
     test("listen", () {
-      bus.onMessage.listen(expectAsync1((event) => expect( event.body, equals('body'))));
+      bus.onMessage.listen(expectAsync((event) => expect( event.body, equals('body'))));
       client.fakeData();
     });
     
     test("send callback" , () {
-      bus.send('address', {'data': 'data'}, expectAsync1((event) => expect( event.body, equals('body2') )));
+      bus.send('address', {'data': 'data'}, expectAsync((event) => expect( event.body, equals('body2') )));
   
       expect(client.lastSend, isNotNull);
   
@@ -42,10 +42,10 @@ void main() {
     });
     
     test("send callback after listen", () {
-      bus.onMessage.listen(expectAsync1((event) => expect( event.body, equals('body'))));
+      bus.onMessage.listen(expectAsync((event) => expect( event.body, equals('body'))));
       client.fakeData();
 
-      bus.send('address', {'data': 'data'}, expectAsync1((event) => expect( event.body, equals('body2') )));
+      bus.send('address', {'data': 'data'}, expectAsync((event) => expect( event.body, equals('body2') )));
       
       expect(client.lastSend, isNotNull);
   
@@ -53,5 +53,27 @@ void main() {
   
       client.fakeData(body: 'body2', address: lastMessage['replyAddress']);      
     });
+    
+    test("register and receive", () {
+      bus.registerHandler('testAddress', expectAsync((event) => expect( event.body, equals('body'))));
+      client.fakeData(address: 'testAddress');
+    });
+
+    test("onSessionIdChanged", () {
+      bus.onSessionIdChanged.listen(expectAsync((event) => expect( event, equals('mySession1'))));
+      bus.sessionID = 'mySession1';
+    });
+    
+    test("login", () {
+      var body = {'status': 'ok', 'sessionID' : 'mySession2'};
+      bus.onSessionIdChanged.listen(expectAsync((event) => expect( event, equals('mySession2'))));
+
+      bus.loginUsernamePassword("username", "password", expectAsync((event) => expect( event.body, equals(body))));
+
+      var lastMessage = JSON.decode(client.lastSend);
+
+      client.fakeData(body: body, address: lastMessage['replyAddress']);      
+    });
+
   });
 }
