@@ -212,7 +212,7 @@ class EventBus {
    * Send a ping.
    */
   void ping(Timer timer) {
-    _logger.info('Sending ping');
+    _logger.fine('Sending ping');
     _socket.send(JSON.encode({ 'type': "ping" }));
   }
 

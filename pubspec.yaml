@@ -5,11 +5,11 @@ description: "vertxbus.dart is a Dart package to connect a browser to a Vert.x E
 homepage: "homepage: https://github.com/wienczny/vertxbus.dart"
 threadsafe: yes
 dependencies:
-  uuid: any
+  uuid: ">=0.3.2 <0.4.0"
   sockjs_client:
       git: git://github.com/nelsonsilva/sockjs-dart-client.git
 dev_dependencies:
-  unittest: any
-  logging_handlers: any
-  dartmocks: any
-  hop: any
+  unittest: ">=0.10.1+2 <0.11.0"
+  logging_handlers: ">=0.8.0 <0.9.0"
+  dartmocks: ">=0.5.1 <0.6.0"
+  hop: ">=0.30.3+1 <0.31.0"
