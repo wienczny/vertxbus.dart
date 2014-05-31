@@ -103,7 +103,7 @@ class EventBus {
    * Called when underlying socket is opened.
    */
   void _onOpenHandler(sockjsevent.Event event) {
-    _logger.info('Open ' + event.toString());
+    _logger.info('OpenHandler ' + event.type);
     _state = OPEN;
     _heartbeatTimer = new Timer.periodic(HEARTBEAT_INTERVAL, ping);
     ping(_heartbeatTimer);
@@ -114,7 +114,7 @@ class EventBus {
    * Called when underlying socket received a message.
    */
   void _onMessageHandler(sockjs.MessageEvent event) {
-    _logger.info("Message " + event.toString());
+    _logger.info("MessageHandler " + event.type);
 
     var json = JSON.decode(event.data);
     var body = json['body'];
@@ -227,13 +227,17 @@ class EventBus {
    * Internal method to do the sending.
    */
   void _doSend(String type, String address, var message, [void replyCallback(BusMessageEvent)]) {
+    if (state != OPEN) {
+      throw new StateError("Connection not OPEN: '" + state + "'");
+    }
+    
     var envelope = {
         'type' : type,
         'address' : address,
         'body' : message
     };
     if (_sessionID != null) {
-      envelope['sessionID'] = _sessionID;
+      envelope['body']['sessionID'] = _sessionID;
     }
     if (replyCallback != null) {
       var replyAddress = uuid.v4();
