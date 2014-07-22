@@ -5,7 +5,7 @@ import 'dart:convert';
 
 import 'package:logging/logging.dart';
 import 'package:uuid/uuid_client.dart';
-import 'package:sockjs_client/sockjs.dart' as sockjs;
+import 'package:sockjs_client/sockjs_client.dart' as sockjs;
 import 'package:sockjs_client/src/events.dart' as sockjsevent;
 
 part './src/EventBusMessageEvent.dart';

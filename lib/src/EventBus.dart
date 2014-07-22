@@ -5,7 +5,7 @@ class EventBus {
    * Logger for this class.
    */
   static final _logger = new Logger("vertx.EventBus");
-  
+
   /**
    * Interval after which a new heartbeat is sent.
    */
@@ -20,7 +20,7 @@ class EventBus {
    * Map of uuid to callback.
    */
   Map _registeredHandlers = new Map<String, Set<Function>>();
-  
+
   /**
    * Sockjs client.
    */
@@ -48,7 +48,7 @@ class EventBus {
     _sessionID = newValue;
     _onSessionIdChanged.add(newValue);
   }
-  
+
   /**
    * Address of AuthManager on Bus
    */
@@ -78,7 +78,7 @@ class EventBus {
   StreamController<String> _onSessionIdChanged = new StreamController<String>.broadcast();
   Stream<String> get onSessionIdChanged => _onSessionIdChanged.stream;
 
-  
+
   /**
    * Time to send heartbeat messages to the server.
    */
@@ -86,7 +86,7 @@ class EventBus {
 
   EventBus(url, {devel: false, debug: false, this.authManagerAddress: 'vertx.basicauthmanager.login',
               socket: null, sessionID}) {
-    this._sessionID = sessionID;
+    this.sessionID = sessionID;
     if (socket == null) {
       _socket = new sockjs.Client(url, devel: devel, debug: debug);
       _state = CONNECTING;
@@ -103,7 +103,7 @@ class EventBus {
    * Called when underlying socket is opened.
    */
   void _onOpenHandler(sockjsevent.Event event) {
-    _logger.info('OpenHandler ' + event.type);
+    _logger.fine('OpenHandler ' + event.type);
     _state = OPEN;
     _heartbeatTimer = new Timer.periodic(HEARTBEAT_INTERVAL, ping);
     ping(_heartbeatTimer);
@@ -114,7 +114,7 @@ class EventBus {
    * Called when underlying socket received a message.
    */
   void _onMessageHandler(sockjs.MessageEvent event) {
-    _logger.info("MessageHandler " + event.type);
+    _logger.fine("MessageHandler " + event.type);
 
     var json = JSON.decode(event.data);
     var body = json['body'];
@@ -144,7 +144,7 @@ class EventBus {
    * Called when underlying socket is closed.
    */
   void _onCloseHandler(sockjsevent.Event event) {
-    _logger.info('Closed +' + event.toString());
+    _logger.fine('Closed +' + event.toString());
     if (_heartbeatTimer != null) {
       _heartbeatTimer.cancel();
     }
@@ -163,10 +163,11 @@ class EventBus {
    * Login to 'authmanager' using credentials.
    */
   void login(var credentials, [void replyCallback(EventBusMessageEvent)]) {
-    send(authManagerAddress, credentials, (busMessageEvent) {
+    send(authManagerAddress, credentials, (EventBusMessageEvent busMessageEvent) {
       var body = busMessageEvent.body;
       if (body['status'] == 'ok') {
         sessionID = body['sessionID'];
+        _logger.finest(body.toString());
       }
       if (replyCallback != null) {
         replyCallback(busMessageEvent);
@@ -192,15 +193,15 @@ class EventBus {
     if (!_registeredHandlers.containsKey(address)) {
       return;
     }
-    
+
     _registeredHandlers[address].remove(replyCallback);
-    
+
     if (_registeredHandlers[address].length <= 0) {
       _doSend("unregister", address, null, replyCallback);
       _registeredHandlers.remove(address);
     }
   }
-  
+
   /**
    * Send a message using this bus.
    */
@@ -228,22 +229,24 @@ class EventBus {
    */
   void _doSend(String type, String address, var message, [void replyCallback(BusMessageEvent)]) {
     if (state != OPEN) {
-      throw new StateError("Connection not OPEN: '" + state + "'");
+      _logger.severe("Could not send message" + message.toString() + " of type " + type + " to " + address);
+      throw new StateError("Connection not OPEN: '" + state.toString() + "'");
     }
-    
+
     var envelope = {
         'type' : type,
         'address' : address,
         'body' : message
     };
-    if (_sessionID != null) {
-      envelope['body']['sessionID'] = _sessionID;
+    if (sessionID != null) {
+      envelope['body'] = { 'sessionID': sessionID };
     }
     if (replyCallback != null) {
       var replyAddress = uuid.v4();
       envelope['replyAddress'] = replyAddress;
       _replyCallbacks[replyAddress] = replyCallback;
     }
+    _logger.fine("Sending message " + envelope.toString());
     _socket.send(JSON.encode(envelope));
   }
 }
